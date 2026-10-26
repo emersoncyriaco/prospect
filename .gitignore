@@ -1,0 +1,13 @@
+node_modules
+dist
+# CSVs das buscas têm dados de leads: nunca versionar
+resultados
+# Sessão do WhatsApp, fila da automação e diagnósticos: nunca versionar
+.prospect-data
+# Segredos e arquivos locais
+.env
+.env.*
+*.log
+.DS_Store
+public/_preview.html
+prospect-backup-*.json
