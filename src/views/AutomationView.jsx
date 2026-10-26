@@ -7,6 +7,14 @@ import { Badge, ConfirmDialog, EmptyState, Group, Row, Segmented, Sheet, Spinner
 import { useToast } from "../components/Toast";
 import Icon from "../components/Icon";
 import { Score } from "./LeadsView";
+import CrmView from "./CrmView";
+import AiSettings from "./AiSettings";
+
+const TABS = [
+  { id: "conversas", label: "Conversas" },
+  { id: "disparos", label: "Disparos" },
+  { id: "ia", label: "IA" },
+];
 
 const STATUS = {
   queued: { label: "Na fila", tone: "gray" },
@@ -36,10 +44,13 @@ const countdown = (ts) => {
 export default function AutomationView() {
   const auto = useAutomation();
   const toast = useToast();
+  const { state, dispatch } = useStore();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [, tick] = useState(0);
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(t); }, []);
+  const tab = TABS.some((t) => t.id === state.settings.waTab) ? state.settings.waTab : "conversas";
+  const setTab = (waTab) => dispatch({ type: "settings", patch: { waTab } });
 
   if (auto.available === false) {
     return (
@@ -54,7 +65,39 @@ export default function AutomationView() {
     );
   }
   if (!auto.status || !auto.campaign) {
-    return <div className="results"><Header /><div className="surface"><EmptyState icon="whatsapp" title="Carregando a automação…" /></div></div>;
+    return <div className="results"><Header /><div className="surface"><EmptyState icon="whatsapp" title="Carregando o WhatsApp…" /></div></div>;
+  }
+
+  if (tab !== "disparos" && !auto.crm) {
+    return (
+      <div className="results results--narrow">
+        <Header tab={tab} onTab={setTab} />
+        <div className="surface">
+          {auto.crmError ? (
+            <EmptyState icon="exclamation.fill" title="Reinicie o servidor do Prospect">
+              As conversas e a IA precisam da versão nova do servidor. No terminal, pare com Ctrl+C e rode “npm run dev” de novo. Os disparos continuam funcionando.
+            </EmptyState>
+          ) : <EmptyState icon="whatsapp" title="Carregando as conversas…" />}
+        </div>
+      </div>
+    );
+  }
+
+  if (tab !== "disparos") {
+    const disconnected = auto.status.status !== "connected";
+    return (
+      <div className={`results ${tab === "conversas" ? "results--crm" : "results--narrow"}`}>
+        <Header tab={tab} onTab={setTab} badge={auto.needsYou} />
+        {disconnected && (
+          <div className="notice notice--warn" role="status">
+            <Icon name="exclamation.fill" size={18} />
+            <p><b>WhatsApp desconectado.</b> A IA e as respostas daqui só funcionam com o WhatsApp conectado.</p>
+            <button type="button" className="btn btn--plain btn--sm" onClick={() => setTab("disparos")}>Conectar</button>
+          </div>
+        )}
+        {tab === "conversas" ? <CrmView /> : <AiSettings />}
+      </div>
+    );
   }
 
   const { status, campaign } = auto;
@@ -80,7 +123,7 @@ export default function AutomationView() {
 
   return (
     <div className="results results--narrow">
-      <Header />
+      <Header tab={tab} onTab={setTab} badge={auto.needsYou} />
 
       <div className="notice notice--warn" role="note">
         <Icon name="exclamation.fill" size={18} />
@@ -199,10 +242,23 @@ export default function AutomationView() {
   );
 }
 
-const Header = () => (
-  <header className="page__header">
-    <h1 className="large-title">Automação</h1>
-    <p className="page__subtitle">Prospecção pelo seu WhatsApp, no ritmo de uma pessoa.</p>
+const SUBTITLE = {
+  conversas: "Todas as respostas dos leads, com a IA respondendo na hora.",
+  disparos: "Prospecção pelo seu WhatsApp, no ritmo de uma pessoa.",
+  ia: "Como a IA responde os seus leads.",
+};
+
+const Header = ({ tab, onTab, badge = 0 }) => (
+  <header className="page__header wa-header">
+    <div>
+      <h1 className="large-title">WhatsApp</h1>
+      <p className="page__subtitle">{SUBTITLE[tab] || SUBTITLE.disparos}</p>
+    </div>
+    {onTab && (
+      <div className="wa-header__tabs">
+        <Segmented label="Seção do WhatsApp" options={TABS.map((t) => (t.id === "conversas" && badge ? { ...t, label: `Conversas (${badge})` } : t))} value={tab} onChange={onTab} />
+      </div>
+    )}
   </header>
 );
 

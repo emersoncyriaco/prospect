@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { isConnected, onIncoming, resolveJid, sendHuman } from "./whatsapp.js";
+import { leadMessage, ownMessage, recordOutgoing, syncFromQueue } from "./crm.js";
 
 const FILE = path.resolve(".prospect-data", "automacao.json");
 const TICK_MS = 5000;
@@ -139,7 +140,8 @@ async function tick() {
         return; // não conta no limite nem espera o intervalo
       }
       item.jid = jid;
-      await sendHuman(jid, item.text);
+      const sentId = await sendHuman(jid, item.text);
+      recordOutgoing({ item, text: item.text, kind: "prospect", id: sentId });
       item.status = "sent";
       item.sentAt = Date.now();
       item.followUpAt = item.sentAt + data.settings.followUp.days * 86400000;
@@ -151,7 +153,8 @@ async function tick() {
         log("skip", `${item.company}: pediu para sair, follow-up cancelado`);
         return;
       }
-      await sendHuman(item.jid || `${item.to}@s.whatsapp.net`, item.followText);
+      const sentId = await sendHuman(item.jid || `${item.to}@s.whatsapp.net`, item.followText);
+      recordOutgoing({ item, text: item.followText, kind: "followup", id: sentId });
       item.followUpSent = true;
       item.followUpSentAt = Date.now();
       log("followup", `Follow-up enviado para ${item.company}`);
@@ -177,13 +180,17 @@ const last8 = (n) => String(n).replace(/\D/g, "").slice(-8);
 const isOptedOut = (n) => (data.optedOut || []).includes(last8(n));
 
 // Respostas: param o follow-up e detectam pedido para sair
-function handleReply({ numbers, text, at }) {
+// Também alimentam o CRM (que decide se a IA responde)
+function handleReply(msg) {
+  if (msg.fromMe) { ownMessage(msg); return; } // você respondeu pelo celular
+  const { numbers, text, at } = msg;
   const optOut = isOptOut(text);
   const item = data.queue.find((i) => ["sent", "queued", "sending"].includes(i.status) && numbers.some((n) => sameNumber(n, i.to)));
   if (optOut) {
     data.optedOut ??= [];
     for (const n of [...numbers, item?.to].filter(Boolean)) if (!isOptedOut(n)) data.optedOut.push(last8(n));
   }
+  leadMessage({ ...msg, optOut, item });
   if (!item) { if (optOut) save(); return; }
   item.status = optOut ? "optout" : "replied";
   item.reply = { text: text.slice(0, 500), at };
@@ -203,6 +210,8 @@ export function startWorker() {
     C.started = true;
     // Itens que estavam "enviando" quando o servidor caiu voltam para a fila
     data.queue.forEach((i) => { if (i.status === "sending") i.status = "queued"; });
+    // Conversas de antes do CRM entram nele
+    syncFromQueue(data.queue);
   }
   clearInterval(C.interval);
   C.interval = setInterval(() => C.tick().catch(() => {}), TICK_MS);
@@ -241,6 +250,10 @@ export function enqueue(items) {
       to: String(it.to).replace(/\D/g, ""),
       text: String(it.text).slice(0, 2000),
       followText: it.followText ? String(it.followText).slice(0, 2000) : "",
+      // Quem é o lead, para a IA responder com contexto
+      context: it.context && typeof it.context === "object"
+        ? Object.fromEntries(["owner", "city", "site", "observation"].map((k) => [k, String(it.context[k] || "").slice(0, 300)]))
+        : null,
       status: "queued",
       createdAt: Date.now(),
     });

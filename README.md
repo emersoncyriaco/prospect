@@ -26,7 +26,29 @@ Depois, em **Ajustes**, cole o token da Apify ([console.apify.com → Settings �
 - **Diagnóstico por lead**: veredito *manter / melhorar / refazer*, pontos para não tocar e dores.
 - **Nota de oportunidade** de 0 a 100 e mensagem personalizada com `{nome}`, `{empresa}`, `{observacao}` e `{eu}`.
 - **Automação de WhatsApp** (Baileys, não oficial) com o seu próprio número: fila, limite diário, intervalo aleatório entre envios, horário comercial, follow-up, detecção de respostas e descadastro automático.
+- **CRM das conversas** na aba WhatsApp: todas as respostas dos leads, funil por etapa (Novo, Interessado, Negociando, Agendado, Fechado, Perdido), resposta manual e filtro **Precisa de você**.
+- **IA que responde os leads** (Claude, da Anthropic) enquanto o Prospect estiver rodando: responde em segundos e passa para você quando pedem preço, reunião ou algo que só você decide.
 - **Exportação** em CSV e backup em JSON.
+
+## IA e CRM no WhatsApp
+
+Na aba **WhatsApp**:
+
+- **Conversas**: cada lead que respondeu, com a conversa completa (prospecção, follow-up, respostas da IA e as suas). Responda daqui ou peça uma sugestão à IA.
+- **IA**: cole a chave da Anthropic ([console.anthropic.com → API Keys](https://console.anthropic.com/settings/keys)), ligue a resposta automática e escreva quem você é, o objetivo das conversas e as regras.
+
+Como a IA trabalha:
+
+- **Automático**: a IA responde sozinha. **Só rascunho**: ela escreve e você aprova com um toque.
+- Espera alguns segundos (ajustável) para o lead terminar de escrever e mostra “digitando…”, como uma pessoa.
+- Nunca inventa preço, prazo ou resultado, nunca fecha negócio sozinha e, se perguntarem, diz que é o seu assistente.
+- **Passa para você** quando pedem preço, proposta ou reunião com dia e hora, quando há reclamação ou quando o assunto vai além do que ela sabe. A conversa vai para **Precisa de você** e a IA para naquela conversa.
+- Só conversa com leads da prospecção: **contatos pessoais nunca são lidos nem respondidos**.
+- Se você responder um lead **pelo celular**, a IA para naquela conversa (religue no botão da conversa).
+- Ignora mensagens automáticas (boas-vindas, ausência) e respeita quem pede para sair.
+- Limite de respostas da IA por conversa por dia, contra robôs de atendimento que respondem robôs.
+
+Modelo: `claude-opus-5-5`, com esforço baixo (respostas rápidas) e reserva automática da Anthropic se o modelo recusar uma mensagem. Cada resposta custa alguns centavos de dólar.
 
 ## Como o dono é encontrado
 
@@ -48,6 +70,8 @@ Não há banco na nuvem: tudo fica **na sua máquina** e **nada disso vai para o
 | Leads, notas, status, ajustes | Armazenamento do navegador (`localStorage`) |
 | Token da Apify | Armazenamento do navegador (nunca entra no backup) |
 | Fila da automação, respostas, descadastros | `.prospect-data/automacao.json` |
+| Conversas do CRM e ajustes da IA | `.prospect-data/conversas.json` |
+| Chave da Anthropic | `.prospect-data/ia.json` (ou a variável `ANTHROPIC_API_KEY`) |
 | Diagnósticos dos sites | `.prospect-data/diagnosticos.json` |
 | Sessão do WhatsApp | `.prospect-data/whatsapp-auth/` (**equivale à senha do seu WhatsApp**) |
 | CSVs das buscas | `resultados/` |

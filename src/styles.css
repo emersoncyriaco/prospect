@@ -984,6 +984,124 @@ p.diag__label { padding-top: 12px; padding-bottom: 0; }
   .qr { justify-content: center; }
 }
 
+/* ---------- WhatsApp: abas Conversas · Disparos · IA ---------- */
+.wa-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.wa-header__tabs { width: min(100%, 380px); }
+/* O CRM ocupa a altura da janela: a lista e a conversa rolam por dentro, o campo de resposta fica sempre à vista */
+.results--crm { max-width: 1240px; display: flex; flex-direction: column; height: calc(100dvh - 56px); min-height: 620px; }
+.results--crm > .page__header, .results--crm > .notice { flex-shrink: 0; }
+.results--crm > .notice { margin-bottom: 14px; }
+
+/* ---------- CRM das conversas ---------- */
+.crm { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; flex: 1; min-height: 0; }
+.crm__filters { display: flex; padding: 2px 0; }
+.crm__count { margin-left: 4px; font-variant-numeric: tabular-nums; opacity: 0.6; }
+.crm__body { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 16px; min-height: 0; }
+.crm__list, .crm__thread { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.crm__search {
+  display: flex; align-items: center; gap: 8px; margin: 12px 12px 6px; padding: 8px 12px;
+  border-radius: var(--radius-control); background: var(--fill-3); color: var(--label-2);
+}
+.crm__search input { flex: 1; min-width: 0; border: 0; background: none; font-size: var(--fs-sub); color: var(--label); outline: none; }
+.crm__items { list-style: none; overflow-y: auto; overscroll-behavior: contain; padding: 4px 6px 10px; }
+.crm__list .empty { padding: 48px 20px; }
+
+.crm-row {
+  display: flex; gap: 12px; width: 100%; padding: 10px; border-radius: 16px; text-align: left;
+  transition: background 0.15s;
+}
+.crm-row:hover { background: var(--fill-3); }
+.crm-row.is-active { background: var(--tint-fill); }
+.crm-row__main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; min-width: 0; flex: 1; }
+.crm-row__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.crm-row__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-callout); }
+.crm-row__top time { flex-shrink: 0; font-size: var(--fs-cap); color: var(--label-2); }
+.crm-row__top time.is-unread { color: var(--green); font-weight: 600; }
+.crm-row__last {
+  font-size: var(--fs-sub); color: var(--label-2); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.crm-row__tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 6px; }
+.crm-row__ai { color: var(--tint); display: inline-grid; }
+.crm-row__unread {
+  margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+  display: grid; place-items: center; background: var(--whatsapp); color: #fff; font-size: 12px; font-weight: 700;
+}
+
+.crm__thread--empty { justify-content: center; }
+.thread__head { display: flex; align-items: center; gap: 12px; padding: 14px 16px 10px; border-bottom: 0.5px solid var(--separator); }
+.thread__back { display: none; }
+.flip { transform: rotate(180deg); }
+.thread__titles { flex: 1; min-width: 0; }
+.thread__title { font: 700 var(--fs-headline)/1.25 var(--font-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thread__sub { font-size: var(--fs-foot); color: var(--label-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.select--sm select { min-height: 32px; font-size: var(--fs-foot); }
+.thread__bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px; }
+.ai-switch {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 4px 12px; border-radius: 100px;
+  background: var(--fill-3); color: var(--label-2); font-size: var(--fs-foot); font-weight: 600;
+}
+.ai-switch.is-on { background: var(--tint-fill); color: var(--tint); }
+.ai-switch:disabled { opacity: 0.6; cursor: not-allowed; }
+.thread__state { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-foot); font-weight: 600; color: var(--red); }
+.thread__summary { flex: 1 1 240px; min-width: 0; font-size: var(--fs-foot); color: var(--label-2); line-height: 1.4; }
+.thread__notice { margin: 0 16px 8px; }
+.thread__error { display: flex; gap: 6px; align-items: flex-start; margin: 0 16px 8px; font-size: var(--fs-foot); color: var(--label-2); }
+
+.thread__msgs {
+  list-style: none; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 16px;
+  background: color-mix(in srgb, var(--bg-3) 60%, transparent);
+}
+.msg { max-width: min(78%, 560px); padding: 8px 12px 6px; border-radius: 18px; font-size: var(--fs-sub); line-height: 1.4; }
+.msg--in { align-self: flex-start; background: var(--bg-2); border-bottom-left-radius: 6px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06); }
+.msg--out { align-self: flex-end; background: #dcf8c6; color: #111; border-bottom-right-radius: 6px; }
+.msg--ai { box-shadow: inset 0 0 0 1.5px rgba(61, 107, 0, 0.35); }
+.msg__text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg__meta { display: block; margin-top: 2px; text-align: right; font-size: 11px; color: rgba(0, 0, 0, 0.45); }
+.msg--in .msg__meta { color: var(--label-3); }
+.msg--typing { display: inline-flex; align-items: center; gap: 8px; color: #3d6b00; font-size: var(--fs-foot); }
+:root[data-theme="dark"] .msg--out { background: #005c4b; color: #e9fef6; }
+:root[data-theme="dark"] .msg--out .msg__meta { color: rgba(233, 254, 246, 0.6); }
+:root[data-theme="dark"] .msg--typing { color: #d4ff2e; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .msg--out { background: #005c4b; color: #e9fef6; }
+  :root:not([data-theme="light"]) .msg--out .msg__meta { color: rgba(233, 254, 246, 0.6); }
+  :root:not([data-theme="light"]) .msg--typing { color: #d4ff2e; }
+}
+
+.thread__draft { display: grid; gap: 8px; padding: 12px 16px; border-top: 0.5px solid var(--separator); background: var(--tint-fill); }
+.thread__draft-title { display: flex; align-items: center; gap: 6px; font-size: var(--fs-foot); font-weight: 600; color: var(--tint); }
+.thread__draft textarea, .composer textarea {
+  width: 100%; resize: vertical; border: 0; border-radius: var(--radius-control); padding: 10px 12px;
+  background: var(--bg-2); font: inherit; font-size: var(--fs-sub); line-height: 1.4; color: var(--label);
+}
+.thread__draft-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.composer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 0.5px solid var(--separator); }
+.composer textarea { flex: 1; min-height: 40px; max-height: 160px; background: var(--fill-3); resize: none; field-sizing: content; }
+.composer textarea:disabled { opacity: 0.6; }
+
+/* ---------- Ajustes da IA ---------- */
+.ai-settings { display: grid; }
+.ai-settings__label { font-size: var(--fs-foot); font-weight: 600; color: var(--label-2); }
+.ai-settings .field--stack { flex-direction: column; gap: 6px; }
+.ai-settings__foot { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: var(--fs-foot); color: var(--label-3); }
+.group__footer code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+
+@media (max-width: 899px) {
+  .wa-header__tabs { width: 100%; }
+  .results--crm { height: calc(100dvh - 96px); min-height: 560px; }
+  .crm__body { grid-template-columns: minmax(0, 1fr); }
+  .crm .crm__thread { display: none; }
+  .crm.is-open .crm__list { display: none; }
+  .crm.is-open .crm__thread { display: flex; }
+  /* Conversa aberta no celular: mais espaço para as mensagens */
+  .crm.is-open .crm__filters, .results--crm:has(.crm.is-open) .page__subtitle { display: none; }
+  .thread__draft textarea { max-height: 96px; }
+  .thread__back { display: grid; margin: -8px 0 -8px -8px; }
+  .msg { max-width: 88%; }
+}
+
 /* ---------- Movimento reduzido ---------- */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

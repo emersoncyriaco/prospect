@@ -91,7 +91,9 @@ export default function App() {
   };
 
   const waConnected = auto.status?.status === "connected";
-  const waReplies = auto.campaign?.queue.filter((i) => i.status === "replied").length || 0;
+  // Conversas que pedem você (rascunho da IA, passou para você ou mensagem não lida)
+  const waPending = (auto.crm?.convs || []).filter((c) => c.needsYou || c.draft || c.unread).length;
+  useEffect(() => { document.title = `${waPending ? `(${waPending}) ` : ""}Prospect — CRM de prospecção`; }, [waPending]);
 
   return (
     <div className={`shell ${panelVisible ? "has-panel" : ""}`}>
@@ -104,8 +106,8 @@ export default function App() {
           <RailButton icon="search.fill" label="Prospecção" active={view === "prospeccao"} onClick={() => setView("prospeccao")}>
             {runner.busy && <span className="rail__spinner"><Spinner label="Buscando" /></span>}
           </RailButton>
-          <RailButton icon="whatsapp" label="Automação" active={view === "automacao"} onClick={() => setView("automacao")}>
-            {waReplies > 0 ? <span className="rail__badge" aria-label={`${waReplies} respostas`}>{waReplies}</span>
+          <RailButton icon="whatsapp" label="WhatsApp" active={view === "automacao"} onClick={() => setView("automacao")}>
+            {waPending > 0 ? <span className="rail__badge" aria-label={`${waPending} conversas pedem você`}>{waPending}</span>
               : <span className={`rail__dot ${waConnected ? "is-on" : ""}`} aria-hidden="true" />}
           </RailButton>
         </div>

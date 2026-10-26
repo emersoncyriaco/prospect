@@ -23,6 +23,34 @@ const G = (globalThis.__prospectWhatsapp ??= {
   listeners: new Set(),
   events: [],
 });
+// Mensagens enviadas por este programa (o WhatsApp devolve uma cópia delas; não são "suas pelo celular")
+G.sentIds ??= new Set();
+
+// Texto de cada tipo de mensagem; mídias viram um marcador que a IA entende
+function messageText(msg) {
+  const m = msg.ephemeralMessage?.message || msg.viewOnceMessage?.message || msg;
+  return m.conversation || m.extendedTextMessage?.text
+    || (m.imageMessage ? m.imageMessage.caption || "[imagem]" : "")
+    || (m.videoMessage ? m.videoMessage.caption || "[vídeo]" : "")
+    || (m.audioMessage ? "[áudio]" : "")
+    || (m.documentMessage || m.documentWithCaptionMessage ? "[documento]" : "")
+    || (m.stickerMessage ? "[figurinha]" : "")
+    || (m.locationMessage ? "[localização]" : "")
+    || (m.contactMessage ? "[contato]" : "")
+    || "";
+}
+
+// O horário das mensagens vem como número ou como "Long" (protobuf); sem horário, conta como agora
+function secondsOf(ts) {
+  const n = typeof ts === "number" ? ts : typeof ts?.toNumber === "function" ? ts.toNumber() : Number(ts);
+  return Number.isFinite(n) && n > 0 ? n : Date.now() / 1000;
+}
+
+function remember(id) {
+  if (!id) return;
+  G.sentIds.add(id);
+  if (G.sentIds.size > 500) G.sentIds.delete(G.sentIds.values().next().value);
+}
 
 const REASON = {
   401: "sessão encerrada (logout)", 403: "acesso negado", 408: "tempo esgotado", 411: "versão incompatível",
@@ -136,12 +164,16 @@ async function start() {
       }
     });
 
-    // Mensagens recebidas (respostas dos leads)
+    // Mensagens recebidas (respostas dos leads) e as que você manda pelo celular
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
-      if (type !== "notify") return;
       for (const m of messages) {
-        if (!m.message || m.key.fromMe || m.key.remoteJid?.endsWith("@g.us") || m.key.remoteJid === "status@broadcast") continue;
-        const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || "[mídia]";
+        if (!m.message || m.key.remoteJid?.endsWith("@g.us") || m.key.remoteJid === "status@broadcast") continue;
+        const fromMe = !!m.key.fromMe;
+        // Recebidas: só as novas. Suas: só as recentes (não as do histórico ao reconectar)
+        if (!fromMe && type !== "notify") continue;
+        if (fromMe && (G.sentIds.has(m.key.id) || Date.now() - secondsOf(m.messageTimestamp) * 1000 > 120_000)) continue;
+        const text = messageText(m.message);
+        if (!text) continue;
         // WhatsApp novo usa LID: tenta achar o número real
         const candidates = [m.key.remoteJid, m.key.remoteJidAlt, m.key.senderPn].filter(Boolean);
         if (m.key.remoteJid?.endsWith("@lid")) {
@@ -151,7 +183,11 @@ async function start() {
           } catch { /* sem mapeamento */ }
         }
         const numbers = [...new Set(candidates.map(digitsOf).filter((d) => d.length >= 10))];
-        for (const fn of G.listeners) fn({ numbers, text, at: Date.now() });
+        const msg = { numbers, text, at: Date.now(), jid: m.key.remoteJid, name: fromMe ? "" : m.pushName || "", id: m.key.id, fromMe };
+        const emit = () => { for (const fn of G.listeners) fn(msg); };
+        // A cópia de um envio deste programa pode chegar antes de o envio terminar: espera um pouco e confere
+        if (fromMe) setTimeout(() => { if (!G.sentIds.has(msg.id)) emit(); }, 2500);
+        else emit();
       }
     });
   } catch (err) {
@@ -192,6 +228,19 @@ export async function sendHuman(jid, text) {
   await sleep(Math.min(9000, 2500 + text.length * 35 + Math.random() * 2000));
   await sock.sendPresenceUpdate("paused", jid).catch(() => {});
   const sent = await sock.sendMessage(jid, { text });
+  remember(sent?.key?.id);
+  return sent?.key?.id || null;
+}
+
+/** Envio rápido (mensagens que você escreve no CRM): só um instante de "digitando…". */
+export async function sendNow(jid, text) {
+  if (!isConnected()) throw new Error("WhatsApp desconectado");
+  const sock = G.sock;
+  await sock.sendPresenceUpdate("composing", jid).catch(() => {});
+  await sleep(700);
+  await sock.sendPresenceUpdate("paused", jid).catch(() => {});
+  const sent = await sock.sendMessage(jid, { text });
+  remember(sent?.key?.id);
   return sent?.key?.id || null;
 }
 

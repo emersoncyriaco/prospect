@@ -38,9 +38,9 @@ function stamp(d = new Date()) {
 let waModule = null;
 async function loadWhatsapp() {
   if (!waModule) {
-    const [wa, campaign] = await Promise.all([import("./whatsapp.js"), import("./campaign.js")]);
+    const [wa, campaign, crm] = await Promise.all([import("./whatsapp.js"), import("./campaign.js"), import("./crm.js")]);
     campaign.startWorker();
-    waModule = { ...wa, ...campaign };
+    waModule = { ...wa, ...campaign, crm };
   }
   return waModule;
 }
@@ -115,6 +115,25 @@ export function createApi({ resultsDir }) {
         if (route === "POST /api/wa/settings") return send(res, 200, wa.updateSettings(await readJson(req)));
         if (route === "POST /api/wa/remove") { wa.removeItem(String((await readJson(req)).id || "")); return send(res, 200, wa.getCampaign()); }
         if (route === "POST /api/wa/clear") { wa.clearFinished(); return send(res, 200, wa.getCampaign()); }
+
+        // ---------- CRM das conversas e IA ----------
+        const { crm } = wa;
+        if (route === "GET /api/wa/crm") return send(res, 200, crm.getCrm());
+        if (req.method === "POST" && url.pathname.startsWith("/api/wa/crm/")) {
+          const body = await readJson(req);
+          const id = String(body.id || "");
+          switch (url.pathname.slice("/api/wa/crm/".length)) {
+            case "read": return send(res, 200, crm.markRead(id));
+            case "update": return send(res, 200, crm.updateConv(id, body.patch || {}));
+            case "send": return send(res, 200, await crm.sendManual(id, body.text));
+            case "draft": return send(res, 200, await crm.draftAction(id, body.action, body.text));
+            case "suggest": return send(res, 200, await crm.suggestDraft(id));
+            case "context": return send(res, 200, crm.setContexts(Array.isArray(body.items) ? body.items : []));
+            case "ai": return send(res, 200, crm.updateAi(body.patch || {}));
+            case "key": return send(res, 200, await crm.saveKey(body.key));
+            case "key-remove": return send(res, 200, await crm.removeKey());
+          }
+        }
         return send(res, 404, { erro: "Rota não encontrada." });
       }
 
